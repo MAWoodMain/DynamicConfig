@@ -130,7 +130,7 @@ public class DynamicConfig extends Thread
                 } else
                     try
                     {
-                        Thread.sleep(500);
+                        Thread.sleep(SLEEP_TIME);
                     } catch (InterruptedException ignored) {}
             }
         }
