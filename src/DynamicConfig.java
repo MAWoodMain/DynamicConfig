@@ -28,12 +28,7 @@ public class DynamicConfig extends Thread
 
     public DynamicConfig(File file, int sleepTime) throws IOException
     {
-        this(file);
         SLEEP_TIME = sleepTime;
-    }
-
-    public DynamicConfig(File file) throws IOException
-    {
         changed = false;
 
         if (!file.exists())
@@ -53,8 +48,12 @@ public class DynamicConfig extends Thread
         loadFromFile();
 
         lastChecksum = getChecksum();
+        if(sleepTime >= 0) this.start();
+    }
 
-        this.start();
+    public DynamicConfig(File file) throws IOException
+    {
+        this(file, SLEEP_TIME);
     }
 
     public void loadFromFile()
