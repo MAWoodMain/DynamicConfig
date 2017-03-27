@@ -3,7 +3,6 @@ import org.apache.commons.io.IOUtils;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.stream.Stream;
 
@@ -105,12 +104,6 @@ public class DynamicConfig extends Thread
         integers.putAll(integersTemp);
         doubles.clear();
         doubles.putAll(doublesTemp);
-
-
-        System.out.println("booleans = " + booleans);
-        System.out.println("strings = " + strings);
-        System.out.println("integers = " + integers);
-        System.out.println("doubles = " + doubles);
     }
 
     public void saveToFile()
