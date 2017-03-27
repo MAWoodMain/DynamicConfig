@@ -1,10 +1,11 @@
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.stream.Stream;
 
 /**
  * DynamicConfig
@@ -46,7 +47,7 @@ public class DynamicConfig extends Thread
         doubles = new HashMap<>();
 
         loadFromFile();
-
+        
         lastChecksum = getChecksum();
         if(sleepTime >= 0) this.start();
     }
@@ -56,9 +57,60 @@ public class DynamicConfig extends Thread
         this(file, SLEEP_TIME);
     }
 
-    public void loadFromFile()
+    public synchronized void loadFromFile()
     {
-        System.out.println("Reloading from file");
+
+        HashMap<String, Boolean> booleansTemp = new HashMap<>();
+        HashMap<String, String> stringsTemp = new HashMap<>();
+        HashMap<String, Integer> integersTemp = new HashMap<>();
+        HashMap<String, Double> doublesTemp = new HashMap<>();
+        try (Stream<String> stream = Files.lines(file.toPath())) {
+            stream.forEach(line ->
+            {
+                // if not all whitespace
+                line = line.trim();
+                if (line.length() > 0)
+                {
+                    String[] parts = line.split(":",3);
+                    if(parts.length == 3)
+                    {
+                        String key = parts[1].substring(1,parts[1].length() - 1);
+                        switch (line.toLowerCase().charAt(0))
+                        {
+                            case 'b':
+                                booleansTemp.put(key, Boolean.valueOf(parts[2]));
+                                break;
+                            case 's':
+                                stringsTemp.put(key, parts[2].substring(1,parts[2].length() - 1));
+                                break;
+                            case 'i':
+                                integersTemp.put(key, Integer.valueOf(parts[2]));
+                                break;
+                            case 'd':
+                                doublesTemp.put(key, Double.valueOf(parts[2]));
+                                break;
+                        }
+                    }
+                }
+            });
+        } catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+        booleans.clear();
+        booleans.putAll(booleansTemp);
+        strings.clear();
+        strings.putAll(stringsTemp);
+        integers.clear();
+        integers.putAll(integersTemp);
+        doubles.clear();
+        doubles.putAll(doublesTemp);
+
+
+        System.out.println("booleans = " + booleans);
+        System.out.println("strings = " + strings);
+        System.out.println("integers = " + integers);
+        System.out.println("doubles = " + doubles);
     }
 
     public void saveToFile()
