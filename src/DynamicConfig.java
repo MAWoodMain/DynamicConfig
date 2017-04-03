@@ -28,9 +28,14 @@ public class DynamicConfig extends Thread
 
     public DynamicConfig(File file, int sleepTime) throws IOException
     {
+        this(file);
+        // override default sleep time (if <= 0 file watching disabled)
         SLEEP_TIME = sleepTime;
-        changed = false;
+    }
 
+    public DynamicConfig(File file) throws IOException
+    {
+        changed = false;
         if (!file.exists())
         {
             // if it is in a folder, create it
@@ -46,19 +51,19 @@ public class DynamicConfig extends Thread
         doubles = new HashMap<>();
 
         loadFromFile();
-        
-        lastChecksum = getChecksum();
-        if(sleepTime >= 0) this.start();
-    }
 
-    public DynamicConfig(File file) throws IOException
-    {
-        this(file, SLEEP_TIME);
+        // if dynamic updating is to be used
+        if(SLEEP_TIME >= 0)
+        {
+            lastChecksum = getChecksum();
+            this.start();
+        }
     }
 
     public synchronized void loadFromFile()
     {
 
+        // temp maps for incoming values
         HashMap<String, Boolean> booleansTemp = new HashMap<>();
         HashMap<String, String> stringsTemp = new HashMap<>();
         HashMap<String, Integer> integersTemp = new HashMap<>();
@@ -66,14 +71,19 @@ public class DynamicConfig extends Thread
         try (Stream<String> stream = Files.lines(file.toPath())) {
             stream.forEach(line ->
             {
-                // if not all whitespace
+                // remove all whitespace
                 line = line.trim();
+                // if anythings left
                 if (line.length() > 0)
                 {
+                    // split on the first 3 ':' (so any in string literals are left)
                     String[] parts = line.split(":",3);
+                    // if it fits the basic expression structure
                     if(parts.length == 3)
                     {
+                        // extract the key part of the expression
                         String key = parts[1].substring(1,parts[1].length() - 1);
+                        // switch on first part (the type) ignoring case
                         switch (line.toLowerCase().charAt(0))
                         {
                             case 'b':
@@ -96,19 +106,35 @@ public class DynamicConfig extends Thread
         {
             e.printStackTrace();
         }
-        booleans.clear();
-        booleans.putAll(booleansTemp);
-        strings.clear();
-        strings.putAll(stringsTemp);
-        integers.clear();
-        integers.putAll(integersTemp);
-        doubles.clear();
-        doubles.putAll(doublesTemp);
+        // replace existing values
+        // force the operations to be atomic using sync.
+        synchronized (booleans)
+        {
+            booleans.clear();
+            booleans.putAll(booleansTemp);
+        }
+        synchronized (strings)
+        {
+            strings.clear();
+            strings.putAll(stringsTemp);
+        }
+
+        synchronized (integers)
+        {
+            integers.clear();
+            integers.putAll(integersTemp);
+        }
+
+        synchronized (doubles)
+        {
+            doubles.clear();
+            doubles.putAll(doublesTemp);
+        }
     }
 
     public void saveToFile()
     {
-        System.out.println("Saving to file");
+        System.out.println("Saving to file *not yet implemented*");
     }
 
     @Override
@@ -116,13 +142,16 @@ public class DynamicConfig extends Thread
     {
         while (!Thread.interrupted())
         {
+            // if the values locally have been updated
             if (changed)
             {
                 saveToFile();
                 changed = false;
             } else
             {
+                // get checksum of file
                 String newChecksum = getChecksum();
+                // if it differs from the last known checksum of the file
                 if (!lastChecksum.equals(newChecksum))
                 {
                     lastChecksum = newChecksum;
