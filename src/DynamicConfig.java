@@ -60,7 +60,7 @@ public class DynamicConfig extends Thread
         }
     }
 
-    public synchronized void loadFromFile()
+    public void loadFromFile()
     {
 
         // temp maps for incoming values
